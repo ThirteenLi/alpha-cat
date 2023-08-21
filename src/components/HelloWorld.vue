@@ -381,6 +381,7 @@
           if (Math.max(...counts) === 2) {
             currentSco += 100
           }
+      
           if (sco <= currentSco) {
             x = i
             y = j
