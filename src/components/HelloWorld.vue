@@ -15,11 +15,13 @@
     arr: Array<Array<number>>;
     mouse: [number, number];
     isBlack: boolean;
+    history: Array<{x:number, y: number}>
   }>({
     status: 'ready',
     arr: DEFAULT_ARR, // 棋盘数据
     mouse: [-1, -1], // 鼠标移动棋子位置
-    isBlack: true
+    isBlack: true,
+    history: [],
   })
 
   const start  = () => {
@@ -28,7 +30,7 @@
   const restart  = () => {
     state.status = 'ready'
     state.arr = Array.from({length: ROWS}, ()=> new Array(COLS).fill(0));
-    // console.log(state.arr)
+    state.history = []
     state.isBlack = true
     state.mouse = [-1, -1]
     const ctx = context.value as CanvasRenderingContext2D
@@ -195,11 +197,17 @@
       }
       ctx.fillStyle = gradientStyle
       ctx.fill();
-      // console.log('i,j', i, j)
       state.arr[i][j] = state.isBlack ? 1 : 2
-      // console.log(state.arr)
+      state.history.unshift({x:i, y:j})
       checkWin([i, j])
     }
+  }
+
+  const toCheat = () => {
+    console.log(state.history)
+    const {x, y} = state.history[0]
+    clearDown(x, y)
+    state.history.shift()
   }
 
   const fakeDown = (x: number, y: number) => {
@@ -210,7 +218,6 @@
       const j = Math.abs(Math.round((y - PADDING) / BOXSIZE))
       const [prevX, prevY] = state.mouse
       clearDown(prevX, prevY)
-      // console.log(i, j, state.arr[i][j])
       if (state.arr[i][j] === 0) {
         state.mouse = [i, j]
       }
@@ -302,6 +309,7 @@
   <canvas ref="canvas" class="board" :width="SIZE" :height="SIZE"></canvas>
   <div class="tools">
     <button v-if="state.status === 'ready'" @click="start">开始</button>
+    <button v-if="state.status === 'running'" v-bind:disabled="state.history.length === 0" @click="toCheat">悔棋</button>
     <button v-if="state.status === 'end'" @click="restart">恭喜{{ state.isBlack ? '黑' : "白" }}棋技高一筹</button>
   </div>
 </template>
