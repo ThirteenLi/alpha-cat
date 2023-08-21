@@ -16,15 +16,21 @@
     mouse: [number, number];
     isBlack: boolean;
     history: Array<{x:number, y: number}>
+    isRobot: boolean;
   }>({
     status: 'ready',
     arr: DEFAULT_ARR, // 棋盘数据
     mouse: [-1, -1], // 鼠标移动棋子位置
     isBlack: true,
     history: [],
+    isRobot: false
   })
 
   const start  = () => {
+    state.status = 'running'
+  }
+  const startRobot  = () => {
+    state.isRobot = true
     state.status = 'running'
   }
   const restart  = () => {
@@ -164,49 +170,56 @@
       ctx.stroke();
   }
 
-  const setDown = (x: number, y: number) => {
-    if (x < PADDING / 2 || y < PADDING / 2 || x > (SIZE - PADDING / 2) || y > (SIZE - PADDING / 2) ) {
-      return 
-    } else {
-      const i = Math.abs(Math.round((x - PADDING) / BOXSIZE))
-      const j = Math.abs(Math.round((y - PADDING) / BOXSIZE))
-      if (state.arr[i][j] !== 0) {
-        return 
-      }
-      const [prevX, prevY] = state.mouse
-      clearDown(prevX, prevY)
-      state.mouse = [-1, -1]
-      const ctx = context.value as CanvasRenderingContext2D
-
-      ctx.beginPath();
-      ctx.arc(i * BOXSIZE + PADDING, j * BOXSIZE + PADDING, BOXSIZE / 2 - 3, 0, Math.PI * 2)
-      const gradientStyle = ctx.createRadialGradient(
-        i * BOXSIZE + PADDING + 2,
-        j * BOXSIZE + PADDING - 2,
-        0,
-        i * BOXSIZE + PADDING ,
-        j * BOXSIZE + PADDING,
-        BOXSIZE / 2,
-      );
-      if (state.isBlack) {
-        gradientStyle.addColorStop(0,'#aaa');
-        gradientStyle.addColorStop(1, "#000");
-      } else {
-        gradientStyle.addColorStop(0,'#fff');
-        gradientStyle.addColorStop(1,'#ccc');
-      }
-      ctx.fillStyle = gradientStyle
-      ctx.fill();
-      state.arr[i][j] = state.isBlack ? 1 : 2
-      state.history.unshift({x:i, y:j})
-      checkWin([i, j])
+  const setDown = (i: number, j: number) => {
+    
+    if (state.arr[i][j] !== 0) { // 判断当前位置是否有棋子
+      return false
     }
+    state.arr[i][j] = state.isBlack ? 1 : 2
+    state.history.unshift({x: i, y: j})
+    // 清楚上一个视觉辅助棋子，并重置视觉辅助棋子坐标，防止删除当前棋子
+    const [prevX, prevY] = state.mouse
+    clearDown(prevX, prevY)
+    state.mouse = [-1, -1]
+
+    const ctx = context.value as CanvasRenderingContext2D
+
+    ctx.beginPath();
+    ctx.arc(i * BOXSIZE + PADDING, j * BOXSIZE + PADDING, BOXSIZE / 2 - 3, 0, Math.PI * 2)
+    const gradientStyle = ctx.createRadialGradient(
+      i * BOXSIZE + PADDING + 2,
+      j * BOXSIZE + PADDING - 2,
+      0,
+      i * BOXSIZE + PADDING ,
+      j * BOXSIZE + PADDING,
+      BOXSIZE / 2,
+    );
+    if (state.isBlack) {
+      gradientStyle.addColorStop(0,'#aaa');
+      gradientStyle.addColorStop(1, "#000");
+    } else {
+      gradientStyle.addColorStop(0,'#fff');
+      gradientStyle.addColorStop(1,'#ccc');
+    }
+    ctx.fillStyle = gradientStyle
+    ctx.fill();
+    checkWin([i, j])
+    return true
   }
+  
 
   const toCheat = () => {
-    console.log(state.history)
     const {x, y} = state.history[0]
     clearDown(x, y)
+    state.arr[x][y] = 0
+    if (!state.isRobot) {
+      state.isBlack = !state.isBlack
+    } else {
+      const {x:x2, y:y2} = state.history[1]
+      clearDown(x2, y2)
+      state.arr[x2][y2] = 0
+      state.history.shift()
+    }
     state.history.shift()
   }
 
@@ -221,6 +234,16 @@
       if (state.arr[i][j] === 0) {
         state.mouse = [i, j]
       }
+    }
+  }
+
+  // 随缘人机
+  const robotDownSuiYuan = () => {
+    let x = Math.floor(Math.random() * ROWS)
+    let y = Math.floor(Math.random() * ROWS)
+    let result = setDown(x, y)
+    if (!result) {
+      robotDownSuiYuan()
     }
   }
 
@@ -239,7 +262,13 @@
     }
     ctx.canvas.onmousedown = (e:MouseEvent) => {
       if (state.status === 'running') {
-        setDown(e.offsetX, e.offsetY)
+        const x = e.offsetX
+        const y = e.offsetY
+        if (x >= PADDING / 2 && y >= PADDING / 2 && x <= (SIZE - PADDING / 2) && y <= (SIZE - PADDING / 2)) {
+          const i = Math.abs(Math.round((x - PADDING) / BOXSIZE))
+          const j = Math.abs(Math.round((y - PADDING) / BOXSIZE))
+          setDown(i, j)
+        }
       }
     }
   }
@@ -272,28 +301,8 @@
       state.isBlack = true
     }
     if (state.status === 'running') {
-      const [x, y]  = state.mouse
-      if (x >= 0 && y >= 0 && context.value) {
-        const ctx = context.value
-        ctx.beginPath();
-        ctx.arc(x * BOXSIZE + PADDING, y * BOXSIZE + PADDING, BOXSIZE / 2 - 3, 0, Math.PI * 2)
-        const gradientStyle = ctx.createRadialGradient(
-          x * BOXSIZE + PADDING + 2,
-          y * BOXSIZE + PADDING - 2,
-          0,
-          x * BOXSIZE + PADDING ,
-          y * BOXSIZE + PADDING,
-          BOXSIZE / 2,
-        );
-        if (state.isBlack) {
-          gradientStyle.addColorStop(0,'#aaa');
-          gradientStyle.addColorStop(1, "rgba(0, 0, 0, 0.5)");
-        } else {
-          gradientStyle.addColorStop(0, '#FFF');
-          gradientStyle.addColorStop(1,'rgba(204, 204, 204, 0.8)');
-        }
-        ctx.fillStyle = gradientStyle
-        ctx.fill();
+      if (state.isRobot && state.isBlack) {
+        robotDownSuiYuan()
       }
     }
   })
@@ -308,8 +317,9 @@
   </div>
   <canvas ref="canvas" class="board" :width="SIZE" :height="SIZE"></canvas>
   <div class="tools">
-    <button v-if="state.status === 'ready'" @click="start">开始</button>
-    <button v-if="state.status === 'running'" v-bind:disabled="state.history.length === 0" @click="toCheat">悔棋</button>
+    <button v-if="state.status === 'ready'" @click="start">人人对战</button>
+    <button v-if="state.status === 'ready'" @click="startRobot" style="margin-left: 6px;">人机对战</button>
+    <button v-if="state.status === 'running'" v-bind:disabled="state.history.length === 0 || (state.isRobot && state.history.length <= 2)" @click="toCheat">悔棋</button>
     <button v-if="state.status === 'end'" @click="restart">恭喜{{ state.isBlack ? '黑' : "白" }}棋技高一筹</button>
   </div>
 </template>
