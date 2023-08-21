@@ -1,12 +1,14 @@
 <script setup lang="ts">
   import { ref, onMounted, watchEffect, reactive} from 'vue'
   import * as _ from 'lodash'
+  import {SCORE} from '../constants'
+
   const canvas = ref<HTMLCanvasElement>()
   let context = ref<CanvasRenderingContext2D>()
   const SIZE = 500 // 棋盘大小
   const PADDING = 10 // 棋盘边框
-  const ROWS = 20 // 行
-  const COLS = 20 // 列
+  const ROWS = 19 // 行
+  const COLS = 19 // 列
   const BOXSIZE = (SIZE - 2 * PADDING) / (ROWS - 1) // 每个单元格的大小
   // const DEFAULT_ARR = Array(ROWS).fill(Array(ROWS).fill(0)) // fill 填充的是整个对象的引用
   const DEFAULT_ARR = Array.from({length: ROWS}, ()=> new Array(COLS).fill(0));
@@ -46,17 +48,14 @@
     }
   }
 
-  const checkWin = ([x, y]: [number, number]) => { // 检查胜利， 上一手坐标
-    // console.log(x, y)
-    let result = false
-    let target = state.arr[x][y]
+  const checkCount = (x:number, y:number, target: number) => {
     // 检查行胜利
-    let rowCount = 1 // 累计数
-    let offsetRow = -1 // 偏移量 (命名风格不统一)
-    while(rowCount < 5) {
-      if (x + offsetRow >= 0 && x + offsetRow <= 19 && state.arr[x + offsetRow][y] === target) {
-        rowCount += 1
-        if (rowCount >= 5) {
+    let countRow = 1 
+    let offsetRow = -1 
+    while(countRow < 5) {
+      if (x + offsetRow >= 0 && x + offsetRow <= ROWS - 1 && state.arr[x + offsetRow][y] === target) {
+        countRow += 1
+        if (countRow >= 5) {
           break
         }
         if (offsetRow < 0) {
@@ -70,15 +69,11 @@
         break
       }
     }
-    // console.log("行胜利", rowCount)
-    if (rowCount >= 5) {
-      result = true
-    }
     // 检查列胜利
     let countCol = 1 // 累计数
     let offsetCol = -1 // 偏移量(命名风格统一)
     while(countCol < 5) {
-      if (y + offsetCol >= 0 && y + offsetCol <= 19 && state.arr[x][y + offsetCol] === target) {
+      if (y + offsetCol >= 0 && y + offsetCol <= ROWS -1 && state.arr[x][y + offsetCol] === target) {
         countCol += 1
         if (countCol >= 5) {
           break
@@ -94,16 +89,10 @@
         break
       }
     }
-    // console.log("列胜利", countCol)
-    if (countCol >= 5) {
-      result = true
-    }
-
-    // 检查捺胜利
     let countNa = 1
     let offsetNa = -1
     while(countNa < 5) {
-      if (y + offsetNa >= 0 && y + offsetNa <= 19 && x + offsetNa >= 0 && x + offsetNa <= 19 && state.arr[x + offsetNa][y + offsetNa] === target) {
+      if (y + offsetNa >= 0 && y + offsetNa <= ROWS -1 && x + offsetNa >= 0 && x + offsetNa <= ROWS -1 && state.arr[x + offsetNa][y + offsetNa] === target) {
         countNa += 1
         if (countNa >= 5) {
           break
@@ -119,15 +108,10 @@
         break
       }
     }
-    // console.log("捺胜利", countNa)
-    if (countNa >= 5) {
-      result = true
-    }
-    //检查撇胜利
     let countPie = 1
     let offsetPie = -1
     while(countPie < 5) {
-      if (y - offsetPie >= 0 && y - offsetPie <= 19 && x + offsetPie >= 0 && x + offsetPie <= 19 && state.arr[x + offsetPie][y - offsetPie] === target) {
+      if (y - offsetPie >= 0 && y - offsetPie <= ROWS -1 && x + offsetPie >= 0 && x + offsetPie <= ROWS -1 && state.arr[x + offsetPie][y - offsetPie] === target) {
         countPie += 1
         if (countPie >= 5) {
           break
@@ -143,7 +127,107 @@
         break
       }
     }
-    // console.log("撇胜利", countPie)
+    return [
+      countRow,
+      countCol,
+      countPie,
+      countNa,
+    ]
+  }
+
+  const checkWin = ([x, y]: [number, number]) => { // 检查胜利， 上一手坐标
+    let result = false
+    let target = state.arr[x][y]
+    // 检查行胜利
+    let rowCount = 1 // 累计数
+    let offsetRow = -1 // 偏移量 (命名风格不统一)
+    while(rowCount < 5) {
+      if (x + offsetRow >= 0 && x + offsetRow <= ROWS - 1 && state.arr[x + offsetRow][y] === target) {
+        rowCount += 1
+        if (rowCount >= 5) {
+          break
+        }
+        if (offsetRow < 0) {
+          offsetRow -= 1
+        } else {
+          offsetRow += 1
+        }
+      } else if (offsetRow < 0) {
+        offsetRow = 1
+      } else {
+        break
+      }
+    }
+    if (rowCount >= 5) {
+      result = true
+    }
+    // 检查列胜利
+    let countCol = 1 // 累计数
+    let offsetCol = -1 // 偏移量(命名风格统一)
+    while(countCol < 5) {
+      if (y + offsetCol >= 0 && y + offsetCol <= ROWS -1 && state.arr[x][y + offsetCol] === target) {
+        countCol += 1
+        if (countCol >= 5) {
+          break
+        }
+        if (offsetCol < 0) {
+          offsetCol -= 1
+        } else {
+          offsetCol += 1
+        }
+      } else if (offsetCol < 0) {
+        offsetCol = 1
+      } else {
+        break
+      }
+    }
+    if (countCol >= 5) {
+      result = true
+    }
+
+    // 检查捺胜利
+    let countNa = 1
+    let offsetNa = -1
+    while(countNa < 5) {
+      if (y + offsetNa >= 0 && y + offsetNa <= ROWS -1 && x + offsetNa >= 0 && x + offsetNa <= ROWS -1 && state.arr[x + offsetNa][y + offsetNa] === target) {
+        countNa += 1
+        if (countNa >= 5) {
+          break
+        }
+        if (offsetNa < 0) {
+          offsetNa -= 1
+        } else {
+          offsetNa += 1
+        }
+      } else if (offsetNa < 0) {
+        offsetNa = 1
+      } else {
+        break
+      }
+    }
+    if (countNa >= 5) {
+      result = true
+    }
+    //检查撇胜利
+    let countPie = 1
+    let offsetPie = -1
+    while(countPie < 5) {
+      if (y - offsetPie >= 0 && y - offsetPie <= ROWS -1 && x + offsetPie >= 0 && x + offsetPie <= ROWS -1 && state.arr[x + offsetPie][y - offsetPie] === target) {
+        countPie += 1
+        if (countPie >= 5) {
+          break
+        }
+        if (offsetPie < 0) {
+          offsetPie -= 1
+        } else {
+          offsetPie += 1
+        }
+      } else if (offsetPie < 0) {
+        offsetPie = 1
+      } else {
+        break
+      }
+    }
     if (countPie >= 5) {
       result = true
     }
@@ -171,7 +255,6 @@
   }
 
   const setDown = (i: number, j: number) => {
-    
     if (state.arr[i][j] !== 0) { // 判断当前位置是否有棋子
       return false
     }
@@ -223,16 +306,43 @@
     state.history.shift()
   }
 
-  const fakeDown = (x: number, y: number) => {
-    if (x < PADDING / 2 || y < PADDING / 2 || x > (SIZE - PADDING / 2) || y > (SIZE - PADDING / 2) ) {
+  const fakeDown = (xpx: number, ypx: number) => {
+    if (state.isRobot && state.isBlack) {
+      return
+    }
+    if (xpx < PADDING / 2 || ypx < PADDING / 2 || xpx > (SIZE - PADDING / 2) || ypx > (SIZE - PADDING / 2) ) {
       return 
     } else {
-      const i = Math.abs(Math.round((x - PADDING) / BOXSIZE))
-      const j = Math.abs(Math.round((y - PADDING) / BOXSIZE))
+      const x = Math.abs(Math.round((xpx - PADDING) / BOXSIZE))
+      const y = Math.abs(Math.round((ypx - PADDING) / BOXSIZE))
+
+      // 清楚上一个视觉辅助
       const [prevX, prevY] = state.mouse
       clearDown(prevX, prevY)
-      if (state.arr[i][j] === 0) {
-        state.mouse = [i, j]
+      if (state.arr[x][y] === 0) {
+        state.mouse = [x, y] // 记录坐标，绘制视觉辅助
+        if (x >= 0 && y >= 0 && context.value) {
+        const ctx = context.value
+        ctx.beginPath();
+        ctx.arc(x * BOXSIZE + PADDING, y * BOXSIZE + PADDING, BOXSIZE / 2 - 3, 0, Math.PI * 2)
+        const gradientStyle = ctx.createRadialGradient(
+          x * BOXSIZE + PADDING + 2,
+          y * BOXSIZE + PADDING - 2,
+          0,
+          x * BOXSIZE + PADDING ,
+          y * BOXSIZE + PADDING,
+          BOXSIZE / 2,
+        );
+        if (state.isBlack) {
+          gradientStyle.addColorStop(0,'#aaa');
+          gradientStyle.addColorStop(1, "rgba(0, 0, 0, 0.5)");
+        } else {
+          gradientStyle.addColorStop(0, '#FFF');
+          gradientStyle.addColorStop(1,'rgba(204, 204, 204, 0.8)');
+        }
+        ctx.fillStyle = gradientStyle
+        ctx.fill();
+      }
       }
     }
   }
@@ -241,10 +351,46 @@
   const robotDownSuiYuan = () => {
     let x = Math.floor(Math.random() * ROWS)
     let y = Math.floor(Math.random() * ROWS)
-    let result = setDown(x, y)
+    let result = setDown(x, y)  
     if (!result) {
-      robotDownSuiYuan()
+      robotDownSuiYuan() 
     }
+  }
+
+  // 简单人机
+  const robotDownEasy = () => {
+    let sco = 0
+    let x = 0
+    let y = 0
+    for(let i = 0; i < ROWS; i++) {
+      for(let j = 0; j < COLS; j++) {
+        let currentSco = SCORE[i][j] // 当前位置分数
+        if (state.arr[i][j]) {
+          currentSco = -1
+        } else {
+          const counts = checkCount(i, j, 1) // 当前棋子分数
+          if (Math.max(...counts) === 5) {
+            currentSco += 1000
+          }
+          if (Math.max(...counts) === 4) {
+            currentSco += 900
+          }
+          if (Math.max(...counts) === 3) {
+            currentSco += 600
+          }
+          if (Math.max(...counts) === 2) {
+            currentSco += 100
+          }
+          if (sco <= currentSco) {
+            x = i
+            y = j
+            sco = currentSco
+          }
+        }
+      }  
+    }
+    console.log("最终结果", x, y)
+    setDown(x, y)
   }
 
   const addFunc = () => {
@@ -261,6 +407,9 @@
       }
     }
     ctx.canvas.onmousedown = (e:MouseEvent) => {
+      if (state.isRobot && state.isBlack) {
+        return
+      }
       if (state.status === 'running') {
         const x = e.offsetX
         const y = e.offsetY
@@ -302,7 +451,8 @@
     }
     if (state.status === 'running') {
       if (state.isRobot && state.isBlack) {
-        robotDownSuiYuan()
+        // robotDownSuiYuan()
+        robotDownEasy()
       }
     }
   })
