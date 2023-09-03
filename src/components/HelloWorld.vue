@@ -48,93 +48,6 @@
     }
   }
 
-  const checkCount = (x:number, y:number, target: number) => {
-    // 检查行胜利
-    let countRow = 1 
-    let offsetRow = -1 
-    while(countRow < 5) {
-      if (x + offsetRow >= 0 && x + offsetRow <= ROWS - 1 && state.arr[x + offsetRow][y] === target) {
-        countRow += 1
-        if (countRow >= 5) {
-          break
-        }
-        if (offsetRow < 0) {
-          offsetRow -= 1
-        } else {
-          offsetRow += 1
-        }
-      } else if (offsetRow < 0) {
-        offsetRow = 1
-      } else {
-        break
-      }
-    }
-    // 检查列胜利
-    let countCol = 1 // 累计数
-    let offsetCol = -1 // 偏移量(命名风格统一)
-    while(countCol < 5) {
-      if (y + offsetCol >= 0 && y + offsetCol <= ROWS -1 && state.arr[x][y + offsetCol] === target) {
-        countCol += 1
-        if (countCol >= 5) {
-          break
-        }
-        if (offsetCol < 0) {
-          offsetCol -= 1
-        } else {
-          offsetCol += 1
-        }
-      } else if (offsetCol < 0) {
-        offsetCol = 1
-      } else {
-        break
-      }
-    }
-    let countNa = 1
-    let offsetNa = -1
-    while(countNa < 5) {
-      if (y + offsetNa >= 0 && y + offsetNa <= ROWS -1 && x + offsetNa >= 0 && x + offsetNa <= ROWS -1 && state.arr[x + offsetNa][y + offsetNa] === target) {
-        countNa += 1
-        if (countNa >= 5) {
-          break
-        }
-        if (offsetNa < 0) {
-          offsetNa -= 1
-        } else {
-          offsetNa += 1
-        }
-      } else if (offsetNa < 0) {
-        offsetNa = 1
-      } else {
-        break
-      }
-    }
-    let countPie = 1
-    let offsetPie = -1
-    while(countPie < 5) {
-      if (y - offsetPie >= 0 && y - offsetPie <= ROWS -1 && x + offsetPie >= 0 && x + offsetPie <= ROWS -1 && state.arr[x + offsetPie][y - offsetPie] === target) {
-        countPie += 1
-        if (countPie >= 5) {
-          break
-        }
-        if (offsetPie < 0) {
-          offsetPie -= 1
-        } else {
-          offsetPie += 1
-        }
-      } else if (offsetPie < 0) {
-        offsetPie = 1
-      } else {
-        break
-      }
-    }
-    return [
-      countRow,
-      countCol,
-      countPie,
-      countNa,
-    ]
-  }
-
   const checkWin = ([x, y]: [number, number]) => { // 检查胜利， 上一手坐标
     let result = false
     let target = state.arr[x][y]
@@ -357,41 +270,220 @@
     }
   }
 
-  // 简单人机
-  const robotDownEasy = () => {
-    let sco = 0
-    let x = 0
-    let y = 0
-    for(let i = 0; i < ROWS; i++) {
-      for(let j = 0; j < COLS; j++) {
-        let currentSco = SCORE[i][j] // 当前位置分数
-        if (state.arr[i][j]) {
-          currentSco = -1
-        } else {
-          const counts = checkCount(i, j, 1) // 当前棋子分数
-          if (Math.max(...counts) === 5) {
-            currentSco += 1000
-          }
-          if (Math.max(...counts) === 4) {
-            currentSco += 900
-          }
-          if (Math.max(...counts) === 3) {
-            currentSco += 600
-          }
-          if (Math.max(...counts) === 2) {
-            currentSco += 100
+  const countScore = (i: number, j: number) => {
+    let currentScore = 0
+
+    const arr = [[0, 1], [1, 0], [1, 1], [1, -1]]
+    arr.forEach((item) => {
+      const [offsetX, offsetY] = item
+          let whiteCount = 1
+          let blackCount = 1
+          let whiteEmpty = 0
+          let blackEmpty = 0
+          let whiteErr = 0
+          let blackErr = 0
+          let offsetNumber = -1
+          let offsetNumberBlack = -1
+          // 如果下[i,j]的是白棋，周围棋子数据
+          while(offsetNumber < 5) {
+            const currentX = offsetX * offsetNumber + i
+            const currentY = offsetY * offsetNumber + j
+            if (currentX < 0 || currentY < 0 || currentX > ROWS -1 || currentY > ROWS - 1 || state.arr[currentX][currentY] === 1) {
+              whiteErr += 1
+              if (offsetNumber < 0) {
+                offsetNumber = 1
+              } else {
+                offsetNumber = 5
+              }
+            } else {
+              // 遇到了空白子
+              if (!state.arr[currentX][currentY]) {
+                if (whiteEmpty === 0) {
+                  // 如果与[i,j]距离为4 不需要处理
+                  if (offsetNumber === -4) {
+                    offsetNumber = 1
+                  }
+                  if (offsetNumber === 4) {
+                    offsetNumber = 5
+                  }
+                  if (offsetNumber < 0 && offsetNumber !== -4) {
+                    // 如果在左半边，继续判断下一颗棋子
+                    let nextX = offsetX * (offsetNumber - 1) + i
+                    let nextY = offsetY * (offsetNumber - 1) + j
+                    // 如果边界，或者黑棋，或者无子
+                    if (nextX < 0 || nextX > ROWS -1 || nextY < 0 || nextY > ROWS -1 || state.arr[nextX][nextY] === 1 || !state.arr[nextX][nextY]) {
+                      offsetNumber = 1
+                    } else {
+                      whiteEmpty += 1
+                      offsetNumber -= 1
+                    }
+                  } else if (offsetNumber > 0 && offsetNumber !== 4) {
+                    // 如果在右半边，继续判断下一颗棋子
+                    let nextX = offsetX * (offsetNumber + 1) + i
+                    let nextY = offsetY * (offsetNumber + 1) + j
+                    // 如果边界，或者黑棋，或者无子
+                    if (nextX < 0 || nextX > ROWS -1 || nextY < 0 || nextY > ROWS -1 || state.arr[nextX][nextY] === 1 || !state.arr[nextX][nextY]) {
+                      offsetNumber = 5
+                    } else {
+                      whiteEmpty += 1
+                      offsetNumber += 1
+                    }
+                  }
+                } else {
+                  offsetNumber = 5
+                }
+              } else if (state.arr[currentX][currentY] === 2) {
+                whiteCount += 1
+                if (offsetNumber < 0 && offsetNumber > -4) {
+                  offsetNumber -= 1
+                } else if (offsetNumber <= -4) {
+                  offsetNumber = 1
+                } else if (offsetNumber > 0) {
+                  offsetNumber += 1
+                }
+              }
+            }
           }
       
-          if (sco <= currentSco) {
-            x = i
-            y = j
-            sco = currentSco
+          // 如果下[i,j]的是黑棋，周围棋子数据
+          while(offsetNumberBlack < 5) {
+            const currentX = offsetX * offsetNumberBlack + i
+            const currentY = offsetY * offsetNumberBlack + j
+            if (currentX < 0 || currentY < 0 || currentX > ROWS -1 || currentY > ROWS - 1 || state.arr[currentX][currentY] === 2) {
+              blackErr += 1
+              if (offsetNumberBlack < 0) {
+                offsetNumberBlack = 1
+              } else {
+                offsetNumberBlack = 5
+              }
+            } else {
+              // 遇到了空子
+              if (!state.arr[currentX][currentY]) {
+                if (blackEmpty === 0) {
+                  // 如果与[i,j]距离为4 不需要处理
+                  if (offsetNumberBlack === -4) {
+                    offsetNumberBlack = 1
+                  } else if (offsetNumberBlack === 4) {
+                    offsetNumberBlack = 5
+                  } else if (offsetNumberBlack < 0 && offsetNumberBlack !== -4) {
+                    // 如果在左半边，继续判断下一颗棋子
+                    let nextX = offsetX * (offsetNumberBlack - 1) + i
+                    let nextY = offsetY * (offsetNumberBlack - 1) + j
+                    // 如果边界，或者黑棋，或者无子
+                    if (nextX < 0 || nextX > ROWS -1 || nextY < 0 || nextY > ROWS -1 || state.arr[nextX][nextY] === 2 || !state.arr[nextX][nextY]) {
+                      offsetNumberBlack = 1
+                    } else {
+                      blackEmpty += 1
+                      offsetNumberBlack -= 1
+                    }
+                  } else if (offsetNumberBlack > 0 && offsetNumberBlack !== 4) {
+                    // 如果在右半边，继续判断下一颗棋子
+                    let nextX = offsetX * (offsetNumberBlack + 1) + i
+                    let nextY = offsetY * (offsetNumberBlack + 1) + j
+                    // 如果边界，或者黑棋，或者无子
+                    if (nextX < 0 || nextX > ROWS -1 || nextY < 0 || nextY > ROWS -1 || state.arr[nextX][nextY] === 2 || !state.arr[nextX][nextY]) {
+                      offsetNumberBlack = 5
+                    } else {
+                      blackEmpty += 1
+                      offsetNumberBlack += 1
+                    }
+                  }
+                } else {
+                  offsetNumberBlack = 5
+                }
+              }
+              if (state.arr[currentX][currentY] === 1) {
+                blackCount += 1
+                if (offsetNumberBlack < 0 && offsetNumberBlack > -4) {
+                  offsetNumberBlack -= 1
+                } else if (offsetNumberBlack <= -4) {
+                  offsetNumberBlack = 1
+                } else if (offsetNumberBlack > 0) {
+                  offsetNumberBlack += 1
+                }
+              }
+            }
           }
+          if (whiteCount === 5) {
+            if (whiteEmpty === 1) {
+              currentScore += 380
+            } else {
+              currentScore += 9000
+            }
+          }
+          if (whiteCount === 4 && whiteErr === 0 && whiteEmpty === 0) {
+            currentScore += 700
+          }
+          if (whiteCount === 4 && whiteEmpty === 1) {
+            currentScore += 380
+          }
+          if (whiteCount === 4 && whiteErr === 1 && whiteEmpty === 0) {
+            currentScore += 380
+          }
+          if (whiteCount === 3 && whiteErr === 0 && whiteEmpty === 0) {
+            currentScore += 240
+          }
+          if (whiteCount === 3 && whiteErr === 1 && whiteEmpty === 0) {
+            currentScore += 50
+          }
+          if (whiteCount === 3 && whiteErr === 0 && whiteEmpty === 1) {
+            currentScore += 50
+          }
+          if (whiteCount === 2 && whiteErr === 0 && whiteEmpty === 0) {
+            currentScore += 40
+          }
+          if (blackCount === 4 && blackErr === 0 && blackEmpty === 0) {
+            currentScore += 800
+          }
+          if (blackCount === 4 && blackEmpty === 1) {
+            currentScore += 360
+          }
+          if (blackCount === 4 && blackErr === 1 && blackEmpty === 0) {
+            currentScore += 360
+          }
+          if (blackCount === 3 && blackErr === 0 && blackEmpty === 0) {
+            currentScore += 300
+          }
+          if (blackCount === 3 && blackErr === 1 && blackEmpty === 0) {
+            currentScore += 100
+          }
+          if (blackCount === 3 && blackErr === 0 && blackEmpty === 1) {
+            currentScore += 80
+          }
+          if (blackCount === 2 && blackErr === 0 && blackEmpty === 0) {
+            currentScore +=90
+          }
+          if (blackCount === 5) {
+            if (blackEmpty === 1) {
+              currentScore += 360
+            } else {
+              currentScore += 10000
+            }
+          }
+    })
+    return currentScore
+  }
+
+  const robotDownHard = () => {
+    let maxScore = 0
+    let downX = 0
+    let downY = 0
+    for(let i = 0; i < ROWS; i++) {
+      for(let j = 0; j < COLS; j++) {
+        // 计算该位置分数
+        if (state.arr[i][j]) {
+          continue
+        }
+        let currentScore = SCORE[i][j];
+        currentScore += countScore(i, j)
+        if (currentScore >= maxScore) {
+          maxScore = currentScore
+          downX = i
+          downY = j
         }
       }  
     }
-    console.log("最终结果", x, y)
-    setDown(x, y)
+    setDown(downX, downY)
   }
 
   const addFunc = () => {
@@ -453,7 +545,8 @@
     if (state.status === 'running') {
       if (state.isRobot && state.isBlack) {
         // robotDownSuiYuan()
-        robotDownEasy()
+        // robotDownEasy()
+        robotDownHard()
       }
     }
   })
