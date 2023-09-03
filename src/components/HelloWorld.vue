@@ -406,7 +406,7 @@
           }
           if (whiteCount === 5) {
             if (whiteEmpty === 1) {
-              currentScore += 380
+              currentScore += 360
             } else {
               currentScore += 9000
             }
@@ -415,10 +415,10 @@
             currentScore += 700
           }
           if (whiteCount === 4 && whiteEmpty === 1) {
-            currentScore += 380
+            currentScore += 360
           }
           if (whiteCount === 4 && whiteErr === 1 && whiteEmpty === 0) {
-            currentScore += 380
+            currentScore += 360
           }
           if (whiteCount === 3 && whiteErr === 0 && whiteEmpty === 0) {
             currentScore += 240
@@ -433,13 +433,13 @@
             currentScore += 40
           }
           if (blackCount === 4 && blackErr === 0 && blackEmpty === 0) {
-            currentScore += 800
+            currentScore += 8000
           }
           if (blackCount === 4 && blackEmpty === 1) {
-            currentScore += 360
+            currentScore += 380
           }
           if (blackCount === 4 && blackErr === 1 && blackEmpty === 0) {
-            currentScore += 360
+            currentScore += 380
           }
           if (blackCount === 3 && blackErr === 0 && blackEmpty === 0) {
             currentScore += 300
@@ -455,7 +455,7 @@
           }
           if (blackCount === 5) {
             if (blackEmpty === 1) {
-              currentScore += 360
+              currentScore += 380
             } else {
               currentScore += 10000
             }
